@@ -1,0 +1,39 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { combineReducers, configureStore } from "@reduxjs/toolkit";
+import { setupListeners } from '@reduxjs/toolkit/dist/query';
+import { FLUSH, PAUSE, PERSIST, persistReducer, PURGE, REGISTER, REHYDRATE } from "redux-persist";
+import { productApi } from './api';
+import { cartReducer } from './cartSlice';
+import { favoriteReducer } from './favoriteSlice';
+import { userReducer } from "./userSlice";
+
+const persistConfig = {
+    key: 'root',
+    storage: AsyncStorage,
+    blacklist: ['productApi']
+}
+
+const rootReducers = combineReducers({
+    [productApi.reducerPath]: productApi.reducer,
+    user: userReducer,
+    cart: cartReducer,
+    favorite: favoriteReducer
+})
+
+const persistedReducer = persistReducer(persistConfig, rootReducers)
+
+const store = configureStore({
+    reducer: persistedReducer,
+    middleware: (getDefaultMiddleware) => getDefaultMiddleware({
+        serializableCheck: {
+            ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER]
+        }
+    }).concat(productApi.middleware),
+})
+
+setupListeners(store.dispatch)
+
+export type RootState = ReturnType<typeof rootReducers>
+
+export default store
+
